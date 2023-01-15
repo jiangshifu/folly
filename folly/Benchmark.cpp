@@ -160,7 +160,7 @@ static std::pair<double, UserCounters> runBenchmarkGetNSPerIteration(
   std::vector<std::pair<double, UserCounters>> trialResults(
       FLAGS_bm_max_trials);
   size_t actualTrials = 0;
-
+    FLAGS_bm_max_trials = 1;
   // We do measurements in several trials (epochs) and take the minimum, to
   // account for jitter.
   for (; actualTrials < FLAGS_bm_max_trials; ++actualTrials) {

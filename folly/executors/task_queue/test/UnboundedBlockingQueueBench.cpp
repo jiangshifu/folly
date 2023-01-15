@@ -20,7 +20,8 @@
 #include <numeric>
 #include <thread>
 #include <vector>
-
+#include<chrono>
+using namespace std;
 #include <boost/thread/barrier.hpp>
 #include <glog/logging.h>
 
@@ -41,15 +42,19 @@ BENCHMARK(drain_full_queue, iters) {
   folly::BenchmarkSuspender braces;
 
   auto const qlen = size_t(FLAGS_drain_full_queue_qlen * iters);
-  auto const nthreads = size_t(FLAGS_drain_full_queue_nthreads);
-
+  auto  nthreads = size_t(FLAGS_drain_full_queue_nthreads);
+   nthreads = 1;
+  printf("nthreads=%lu\n, qlen=%lu\n", nthreads, qlen);
   CHECK_GE(qlen, nthreads);
-
+  auto begin = chrono::steady_clock::now().time_since_epoch().count();
   folly::UnboundedBlockingQueue<int> q;
   for (auto i = qlen; i != 0; --i) {
     q.add(i);
   }
-  for (auto i = nthreads; i != 0; --i) {
+  auto end = chrono::steady_clock::now().time_since_epoch().count();
+printf("end-begin=%lu\n", end-begin);
+
+for (auto i = nthreads; i != 0; --i) {
     q.add(0); // poison
   }
 

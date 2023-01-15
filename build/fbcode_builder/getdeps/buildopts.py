@@ -49,7 +49,7 @@ class BuildOptions(object):
         vcvars_path=None,
         allow_system_packages: bool = False,
         lfs_path=None,
-        shared_libs: bool = False,
+        shared_libs: bool = True,
         facebook_internal=None,
     ) -> None:
         """fbcode_builder_dir - the path to either the in-fbsource fbcode_builder dir,
@@ -103,6 +103,8 @@ class BuildOptions(object):
         self.allow_system_packages = allow_system_packages
         self.lfs_path = lfs_path
         self.shared_libs = shared_libs
+        print("hello11111111111111111111111111111")
+        print(self.shared_libs)
 
         lib_path = None
         if self.is_darwin():
@@ -204,7 +206,8 @@ class BuildOptions(object):
                 "fb": "on" if self.facebook_internal else "off",
                 "fbsource": "on" if self.fbsource_dir else "off",
                 "test": "off",
-                "shared_libs": "on" if self.shared_libs else "off",
+                # "shared_libs": "on" if self.shared_libs else "off",
+                "shared_libs": "on" ,
             }
         )
 

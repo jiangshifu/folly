@@ -56,7 +56,7 @@ fbcode/folly = folly
 ^fbcode/folly/public_tld/build/facebook_.*
 
 [cmake.defines]
-BUILD_SHARED_LIBS=OFF
+BUILD_SHARED_LIBS=ON
 BOOST_LINK_STATIC=ON
 
 [cmake.defines.os=freebsd]

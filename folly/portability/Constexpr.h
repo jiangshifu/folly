@@ -39,6 +39,7 @@ namespace detail {
 #define FOLLY_DETAIL_STRLEN ::std::strlen
 #endif
 
+    /*FOLLY_DETAIL_STRLEN ::std::strlen*/
 #if FOLLY_HAS_FEATURE(cxx_constexpr_string_builtins) || \
     FOLLY_HAS_BUILTIN(__builtin_strcmp)
 #define FOLLY_DETAIL_STRCMP __builtin_strcmp

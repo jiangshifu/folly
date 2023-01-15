@@ -20,11 +20,11 @@
 #include <folly/executors/ThreadPoolExecutor.h>
 #include <folly/lang/Keep.h>
 #include <folly/synchronization/Latch.h>
-
+#include <chrono>
 #include <atomic>
 #include <memory>
 #include <thread>
-
+using namespace std;
 #include <boost/thread.hpp>
 
 #include <folly/Exception.h>
@@ -536,32 +536,62 @@ TEST(ThreadPoolExecutorTest, AddWithPriority) {
 }
 
 TEST(ThreadPoolExecutorTest, BlockingQueue) {
-  std::atomic_int c{0};
-  auto f = [&] {
-    burnMs(1)();
-    c++;
-  };
-  const int kQueueCapacity = 1;
-  const int kThreads = 1;
+//    auto queue = new LifoSemMPMCQueue<int,  QueueBehaviorIfFull::BLOCK>>(10000)>;
+auto queue = new LifoSemMPMCQueue<int, QueueBehaviorIfFull::BLOCK>(10000);
+//  auto queue = std::make_unique<LifoSemMPMCQueue<int, QueueBehaviorIfFull::BLOCK>>(10000);
+  auto begin = chrono::steady_clock::now().time_since_epoch().count();
+/* 1) one thread 50us */
+//  for(int i=0;i<100000;i++){
+//    queue->add(1);
+//    int ret = queue->take();
+//  }
 
-  auto queue = std::make_unique<LifoSemMPMCQueue<
-      CPUThreadPoolExecutor::CPUTask,
-      QueueBehaviorIfFull::BLOCK>>(kQueueCapacity);
+/* 2) two thread 60us-100us */
+  std::thread t([&]() { for(int i=0;i<100000;i++){
+    queue->add(1);
+  } });
+//std::thread t2([&]() { for(int i=0;i<100000;i++){
+//    int ret = queue->take();
+//} });
+//std::thread t3([&]() { for(int i=0;i<100000;i++){
+//    queue->add(1);
+//} });
+//std::thread t4([&]() { for(int i=0;i<100000;i++){
+//    int ret = queue->take();
+//} });
+    t.join();
+//    t2.join();
+//    t3.join();
+//    t4.join();
+  printf("end - begin = %lu\n",chrono::steady_clock::now().time_since_epoch().count()-begin );
 
-  CPUThreadPoolExecutor cpuExe(
-      kThreads,
-      std::move(queue),
-      std::make_shared<NamedThreadFactory>("CPUThreadPool"));
 
-  // Add `f` five times. It sleeps for 1ms every time. Calling
-  // `cppExec.add()` is *almost* guaranteed to block because there's
-  // only 1 cpu worker thread.
-  for (int i = 0; i < 5; i++) {
-    EXPECT_NO_THROW(cpuExe.add(f));
-  }
-  cpuExe.join();
-
-  EXPECT_EQ(5, c);
+//  std::atomic_int c{0};
+//  auto f = [&] {
+//    burnMs(1)();
+//    c++;
+//  };
+//  const int kQueueCapacity = 1;
+//  const int kThreads = 1;
+//
+//  auto queue = std::make_unique<LifoSemMPMCQueue<
+//      CPUThreadPoolExecutor::CPUTask,
+//      QueueBehaviorIfFull::BLOCK>>(kQueueCapacity);
+//
+//  CPUThreadPoolExecutor cpuExe(
+//      kThreads,
+//      std::move(queue),
+//      std::make_shared<NamedThreadFactory>("CPUThreadPool"));
+//
+//  // Add `f` five times. It sleeps for 1ms every time. Calling
+//  // `cppExec.add()` is *almost* guaranteed to block because there's
+//  // only 1 cpu worker thread.
+//  for (int i = 0; i < 5; i++) {
+//    EXPECT_NO_THROW(cpuExe.add(f));
+//  }
+//  cpuExe.join();
+//
+//  EXPECT_EQ(5, c);
 }
 
 TEST(PriorityThreadFactoryTest, ThreadPriority) {

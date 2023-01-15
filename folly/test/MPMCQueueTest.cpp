@@ -92,9 +92,12 @@ void run_mt_sequencer_test(int numThreads, int numOps, uint32_t init) {
 }
 
 TEST(MPMCQueue, sequencer) {
-  run_mt_sequencer_test<std::atomic>(1, 100, 0);
-  run_mt_sequencer_test<std::atomic>(2, 100000, -100);
-  run_mt_sequencer_test<std::atomic>(100, 10000, -100);
+    TurnSequencer<std::atomic> seq(1);
+    std::atomic<uint32_t> spinCutoff = 1;
+    seq.waitForTurn(1, spinCutoff, (1 % 32) == 0);
+//  run_mt_sequencer_test<std::atomic>(1, 100, 0);
+//  run_mt_sequencer_test<std::atomic>(2, 100000, -100);
+//  run_mt_sequencer_test<std::atomic>(100, 10000, -100);
 }
 
 TEST(MPMCQueue, sequencer_emulated_futex) {

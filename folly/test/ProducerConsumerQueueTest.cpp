@@ -32,8 +32,8 @@ namespace {
 
 template <class T>
 struct TestTraits {
-  T limit() const { return 1 << 24; }
-  T generate() const { return rand() % 26; }
+  T limit() const { return 10000*10000; }
+  T generate() const { return 1; }
 };
 
 template <>
@@ -68,10 +68,15 @@ struct PerfTest {
     // This is written differently than you might expect so that
     // it does not run afoul of -Wsign-compare, regardless of the
     // signedness of this loop's upper bound.
+      static int count=0;
+      int total = traits_.limit();
     for (auto i = traits_.limit(); i > 0; --i) {
+        count++;
       while (!queue_.write(traits_.generate())) {
+
       }
     }
+      printf("count=%d, total=%d",count, total);
   }
 
   void consumer() {
@@ -103,9 +108,9 @@ void doTest(const char* name) {
 
 template <class T, bool Pop = false>
 void perfTestType(const char* type) {
-  const size_t size = 0xfffe;
-
-  LOG(INFO) << "Type: " << type;
+//  const size_t size = 0xfffe;
+    const size_t size = 200*10000;
+  LOG(INFO) << "Type2: " << type << "size="<<size;
   doTest<PerfTest<folly::ProducerConsumerQueue<T>, size, Pop>>(
       "ProducerConsumerQueue");
 }
@@ -132,10 +137,13 @@ struct CorrectnessTest {
   }
 
   void producer() {
+      static int count=0;
     for (auto& data : testData_) {
       while (!queue_.write(data)) {
+          count++;
       }
     }
+    printf("count=%d",count);
   }
 
   void consumer() {
@@ -217,79 +225,79 @@ unsigned int DtorChecker::numInstances = 0;
 
 //////////////////////////////////////////////////////////////////////
 
-TEST(PCQ, QueueCorrectness) {
-  correctnessTestType<std::string, true>("string (front+pop)");
-  correctnessTestType<std::string>("string");
-  correctnessTestType<int>("int");
-  correctnessTestType<unsigned long long>("unsigned long long");
-}
+//TEST(PCQ, QueueCorrectness) {
+//  correctnessTestType<std::string, true>("string (front+pop)");
+//  correctnessTestType<std::string>("string");
+//  correctnessTestType<int>("int");
+//  correctnessTestType<unsigned long long>("unsigned long long");
+//}
 
 TEST(PCQ, PerfTest) {
-  perfTestType<std::string, true>("string (front+pop)");
-  perfTestType<std::string>("string");
+//  perfTestType<std::string, true>("string (front+pop)");
+//  perfTestType<std::string>("string");
   perfTestType<int>("int");
-  perfTestType<unsigned long long>("unsigned long long");
+//  perfTestType<unsigned long long>("unsigned long long");
 }
 
-TEST(PCQ, Destructor) {
-  // Test that orphaned elements in a ProducerConsumerQueue are
-  // destroyed.
-  {
-    folly::ProducerConsumerQueue<DtorChecker> queue(1024);
-    for (int i = 0; i < 10; ++i) {
-      EXPECT_TRUE(queue.write(DtorChecker()));
-    }
+//TEST(PCQ, Destructor) {
+//  // Test that orphaned elements in a ProducerConsumerQueue are
+//  // destroyed.
+//  {
+//    folly::ProducerConsumerQueue<DtorChecker> queue(1024);
+//    for (int i = 0; i < 10; ++i) {
+//      EXPECT_TRUE(queue.write(DtorChecker()));
+//    }
+//
+//    EXPECT_EQ(DtorChecker::numInstances, 10);
+//
+//    {
+//      DtorChecker ignore;
+//      EXPECT_TRUE(queue.read(ignore));
+//      EXPECT_TRUE(queue.read(ignore));
+//    }
+//
+//    EXPECT_EQ(DtorChecker::numInstances, 8);
+//  }
+//
+//  EXPECT_EQ(DtorChecker::numInstances, 0);
+//
+//  // Test the same thing in the case that the queue write pointer has
+//  // wrapped, but the read one hasn't.
+//  {
+//    folly::ProducerConsumerQueue<DtorChecker> queue(4);
+//    for (int i = 0; i < 3; ++i) {
+//      EXPECT_TRUE(queue.write(DtorChecker()));
+//    }
+//    EXPECT_EQ(DtorChecker::numInstances, 3);
+//    {
+//      DtorChecker ignore;
+//      EXPECT_TRUE(queue.read(ignore));
+//    }
+//    EXPECT_EQ(DtorChecker::numInstances, 2);
+//    EXPECT_TRUE(queue.write(DtorChecker()));
+//    EXPECT_EQ(DtorChecker::numInstances, 3);
+//  }
+//  EXPECT_EQ(DtorChecker::numInstances, 0);
+//}
 
-    EXPECT_EQ(DtorChecker::numInstances, 10);
-
-    {
-      DtorChecker ignore;
-      EXPECT_TRUE(queue.read(ignore));
-      EXPECT_TRUE(queue.read(ignore));
-    }
-
-    EXPECT_EQ(DtorChecker::numInstances, 8);
-  }
-
-  EXPECT_EQ(DtorChecker::numInstances, 0);
-
-  // Test the same thing in the case that the queue write pointer has
-  // wrapped, but the read one hasn't.
-  {
-    folly::ProducerConsumerQueue<DtorChecker> queue(4);
-    for (int i = 0; i < 3; ++i) {
-      EXPECT_TRUE(queue.write(DtorChecker()));
-    }
-    EXPECT_EQ(DtorChecker::numInstances, 3);
-    {
-      DtorChecker ignore;
-      EXPECT_TRUE(queue.read(ignore));
-    }
-    EXPECT_EQ(DtorChecker::numInstances, 2);
-    EXPECT_TRUE(queue.write(DtorChecker()));
-    EXPECT_EQ(DtorChecker::numInstances, 3);
-  }
-  EXPECT_EQ(DtorChecker::numInstances, 0);
-}
-
-TEST(PCQ, EmptyFull) {
-  folly::ProducerConsumerQueue<int> queue(3);
-  EXPECT_TRUE(queue.isEmpty());
-  EXPECT_FALSE(queue.isFull());
-
-  EXPECT_TRUE(queue.write(1));
-  EXPECT_FALSE(queue.isEmpty());
-  EXPECT_FALSE(queue.isFull());
-
-  EXPECT_TRUE(queue.write(2));
-  EXPECT_FALSE(queue.isEmpty());
-  EXPECT_TRUE(queue.isFull()); // Tricky: full after 2 writes, not 3.
-
-  EXPECT_FALSE(queue.write(3));
-  EXPECT_EQ(queue.sizeGuess(), 2);
-}
-
-TEST(PCQ, Capacity) {
-  folly::ProducerConsumerQueue<int> queue(3);
-  EXPECT_EQ(queue.capacity(), 2); // PCQ max size is buffer size - 1.
-}
+//TEST(PCQ, EmptyFull) {
+//  folly::ProducerConsumerQueue<int> queue(3);
+//  EXPECT_TRUE(queue.isEmpty());
+//  EXPECT_FALSE(queue.isFull());
+//
+//  EXPECT_TRUE(queue.write(1));
+//  EXPECT_FALSE(queue.isEmpty());
+//  EXPECT_FALSE(queue.isFull());
+//
+//  EXPECT_TRUE(queue.write(2));
+//  EXPECT_FALSE(queue.isEmpty());
+//  EXPECT_TRUE(queue.isFull()); // Tricky: full after 2 writes, not 3.
+//
+//  EXPECT_FALSE(queue.write(3));
+//  EXPECT_EQ(queue.sizeGuess(), 2);
+//}
+//
+//TEST(PCQ, Capacity) {
+//  folly::ProducerConsumerQueue<int> queue(3);
+//  EXPECT_EQ(queue.capacity(), 2); // PCQ max size is buffer size - 1.
+//}

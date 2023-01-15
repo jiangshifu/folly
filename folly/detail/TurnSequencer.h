@@ -123,7 +123,6 @@ struct TurnSequencer {
     uint32_t prevThresh = spinCutoff.load(std::memory_order_relaxed);
     const uint32_t effectiveSpinCutoff =
         updateSpinCutoff || prevThresh == 0 ? kMaxSpinLimit : prevThresh;
-
     uint64_t begin = 0;
     uint32_t tries;
     const uint32_t sturn = turn << kTurnShift;

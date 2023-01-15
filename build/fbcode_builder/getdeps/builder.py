@@ -593,12 +593,12 @@ if __name__ == "__main__":
     def _compute_cmake_define_args(self, env):
         defines = {
             "CMAKE_INSTALL_PREFIX": self.final_install_prefix or self.inst_dir,
-            "BUILD_SHARED_LIBS": "OFF",
+            "BUILD_SHARED_LIBS": "ON",
             # Some of the deps (rsocket) default to UBSAN enabled if left
             # unspecified.  Some of the deps fail to compile in release mode
             # due to warning->error promotion.  RelWithDebInfo is the happy
             # medium.
-            "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+            "CMAKE_BUILD_TYPE": "Debug",
         }
         if "SANDCASTLE" not in os.environ:
             # We sometimes see intermittent ccache related breakages on some
@@ -709,9 +709,9 @@ if __name__ == "__main__":
                 "--target",
                 "install",
                 "--config",
-                "Release",
+                "Debug",
                 "-j",
-                str(self.num_jobs),
+                str(8),
             ],
             env=env,
         )
@@ -1182,7 +1182,7 @@ install(FILES sqlite3.h sqlite3ext.h DESTINATION include)
 
         defines = {
             "CMAKE_INSTALL_PREFIX": self.inst_dir,
-            "BUILD_SHARED_LIBS": "ON" if self.build_opts.shared_libs else "OFF",
+            "BUILD_SHARED_LIBS": "ON",
             "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         }
         define_args = ["-D%s=%s" % (k, v) for (k, v) in defines.items()]
@@ -1202,7 +1202,7 @@ install(FILES sqlite3.h sqlite3ext.h DESTINATION include)
                 "--target",
                 "install",
                 "--config",
-                "Release",
+                "Debug",
                 "-j",
                 str(self.num_jobs),
             ],

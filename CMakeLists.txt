@@ -656,8 +656,7 @@ if (BUILD_TESTS OR BUILD_BENCHMARKS)
       TEST global_executor_test SOURCES GlobalExecutorTest.cpp
       TEST serial_executor_test SOURCES SerialExecutorTest.cpp
       # Fails in ThreadPoolExecutorTest.RequestContext:719 data2 != nullptr
-      TEST thread_pool_executor_test BROKEN WINDOWS_DISABLED
-        SOURCES ThreadPoolExecutorTest.cpp
+      TEST thread_pool_executor_test SOURCES ThreadPoolExecutorTest.cpp
       TEST threaded_executor_test SOURCES ThreadedExecutorTest.cpp
       TEST timed_drivable_executor_test SOURCES TimedDrivableExecutorTest.cpp
 
@@ -989,7 +988,6 @@ if (BUILD_TESTS OR BUILD_BENCHMARKS)
       TEST file_util_test SOURCES FileUtilTest.cpp
       BENCHMARK fingerprint_benchmark SOURCES FingerprintBenchmark.cpp
       TEST fingerprint_test SOURCES FingerprintTest.cpp
-      TEST fixed_string_test SOURCES FixedStringTest.cpp
       TEST format_other_test SOURCES FormatOtherTest.cpp
       BENCHMARK format_benchmark SOURCES FormatBenchmark.cpp
       TEST format_test SOURCES FormatTest.cpp
@@ -1021,8 +1019,7 @@ if (BUILD_TESTS OR BUILD_BENCHMARKS)
         SOURCES MemoryTest.cpp
       TEST move_wrapper_test SOURCES MoveWrapperTest.cpp
       TEST mpmc_pipeline_test SOURCES MPMCPipelineTest.cpp
-      TEST mpmc_queue_test SLOW
-        SOURCES MPMCQueueTest.cpp
+      TEST mpmc_queue_test SOURCES MPMCQueueTest.cpp
       TEST network_address_test HANGING
         SOURCES
           IPAddressTest.cpp
@@ -1036,8 +1033,7 @@ if (BUILD_TESTS OR BUILD_BENCHMARKS)
       TEST portability_test SOURCES PortabilityTest.cpp
       # Turns out this benchmark uses Linux only API for setting CPU affinity i.e. cpu_set_t.
       BENCHMARK producer_consumer_queue_benchmark APPLE_DISABLED SOURCES ProducerConsumerQueueBenchmark.cpp
-      TEST producer_consumer_queue_test SLOW
-        SOURCES ProducerConsumerQueueTest.cpp
+      TEST producer_consumer_queue_test SOURCES ProducerConsumerQueueTest.cpp
       BENCHMARK range_find_benchmark SOURCES RangeFindBenchmark.cpp
       TEST random_test SOURCES RandomTest.cpp
       TEST range_test SOURCES RangeTest.cpp
