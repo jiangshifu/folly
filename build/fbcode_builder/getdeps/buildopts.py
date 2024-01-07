@@ -110,7 +110,7 @@ class BuildOptions(object):
         self.free_up_disk = free_up_disk
 
         if build_type is None:
-            build_type = "RelWithDebInfo"
+            build_type = "Debug"
 
         self.build_type = build_type
 

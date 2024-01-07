@@ -16,6 +16,10 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 # We use the GoogleTest module if it is available (only in CMake 3.9+)
 # It requires CMP0054 and CMP0057 to be enabled.
 
+SET(CMAKE_BUILD_TYPE "Debug")
+
+
+
 IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
   MESSAGE(STATUS "current platform: Linux ")
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Windows")

@@ -59,10 +59,31 @@ void run_mt_sequencer_thread(
     int i) {
   for (int op = i; op < numOps; op += numThreads) {
     seq.waitForTurn(init + op, spinThreshold, (op % 32) == 0);
+    seq.waitForTurn(init + op, spinThreshold, (op % 32) == 0);
     EXPECT_EQ(prev, op - 1);
     prev = op;
     seq.completeTurn(init + op);
   }
+}
+
+template <template <typename> class Atom>
+void run_mt_sequencer_thread2(
+        int numThreads,
+        int numOps,
+        uint32_t init,
+        TurnSequencer<Atom>& seq,
+        Atom<uint32_t>& spinThreshold,
+        int& prev,
+        int i) {
+    for (int op = i; op < numOps; op += numThreads) {
+        printf("jch__wait_begin, tid=%lu\n", pthread_self());
+        seq.waitForTurn(init + op, spinThreshold, (op % 32) == 0);
+        printf("jch__wait_end, tid=%lu\n", pthread_self());
+        sleep(1000);
+        EXPECT_EQ(prev, op - 1);
+        prev = op;
+        seq.completeTurn(init + op);
+    }
 }
 
 template <template <typename> class Atom>
@@ -71,6 +92,7 @@ void run_mt_sequencer_test(int numThreads, int numOps, uint32_t init) {
   Atom<uint32_t> spinThreshold(0);
 
   int prev = -1;
+    numThreads = 2;
   vector<std::thread> threads(numThreads);
   for (int i = 0; i < numThreads; ++i) {
     threads[i] = DSched::thread(std::bind(
@@ -84,6 +106,7 @@ void run_mt_sequencer_test(int numThreads, int numOps, uint32_t init) {
         i));
   }
 
+
   for (auto& thr : threads) {
     DSched::join(thr);
   }
@@ -91,10 +114,45 @@ void run_mt_sequencer_test(int numThreads, int numOps, uint32_t init) {
   EXPECT_EQ(prev, numOps - 1);
 }
 
-TEST(MPMCQueue, sequencer) {
-    printf("jch__1\n");
+template <template <typename> class Atom>
+void run_mt_sequencer_test2(int numThreads, int numOps, uint32_t init) {
+    TurnSequencer<Atom> seq(init);
+    Atom<uint32_t> spinThreshold(0);
 
-//  run_mt_sequencer_test<std::atomic>(1, 100, 0);
+    int prev = -1;
+    numThreads = 2;
+    vector<std::thread> threads(numThreads);
+    printf("jch__run_mt_sequencer_test2\n");
+    for (int i = 0; i < numThreads; ++i) {
+        threads[i] = DSched::thread(std::bind(
+                run_mt_sequencer_thread2<Atom>,
+                numThreads,
+                numOps,
+                init,
+                std::ref(seq),
+                std::ref(spinThreshold),
+                std::ref(prev),
+                i));
+    }
+
+    for (auto& thr : threads) {
+        DSched::join(thr);
+    }
+
+//    for (int op = i; op < numOps; op += numThreads) {
+//        seq.waitForTurn(init + op, spinThreshold, (op % 32) == 0);
+//        EXPECT_EQ(prev, op - 1);
+//        prev = op;
+//        seq.completeTurn(init + op);
+//    }
+
+    EXPECT_EQ(prev, numOps - 1);
+}
+
+TEST(MPMCQueue, sequencer) {
+    printf("jch__4\n");
+
+  run_mt_sequencer_test2<std::atomic>(1, 100, 0);
 //  run_mt_sequencer_test<std::atomic>(2, 100000, -100);
 //  run_mt_sequencer_test<std::atomic>(100, 10000, -100);
 }
