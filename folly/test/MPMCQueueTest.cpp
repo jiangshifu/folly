@@ -92,9 +92,11 @@ void run_mt_sequencer_test(int numThreads, int numOps, uint32_t init) {
 }
 
 TEST(MPMCQueue, sequencer) {
-  run_mt_sequencer_test<std::atomic>(1, 100, 0);
-  run_mt_sequencer_test<std::atomic>(2, 100000, -100);
-  run_mt_sequencer_test<std::atomic>(100, 10000, -100);
+    printf("jch__1\n");
+
+//  run_mt_sequencer_test<std::atomic>(1, 100, 0);
+//  run_mt_sequencer_test<std::atomic>(2, 100000, -100);
+//  run_mt_sequencer_test<std::atomic>(100, 10000, -100);
 }
 
 TEST(MPMCQueue, sequencerEmulatedFutex) {

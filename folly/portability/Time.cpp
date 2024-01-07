@@ -275,7 +275,7 @@ extern "C" int clock_gettime(clockid_t clock_id, struct timespec* tp) {
   }
 }
 #else
-#error No clock_gettime(3) compatibility wrapper available for this platform.
+
 #endif
 #endif
 

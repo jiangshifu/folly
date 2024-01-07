@@ -1062,7 +1062,7 @@ if (BUILD_TESTS OR BUILD_BENCHMARKS)
         SOURCES MemoryTest.cpp
       TEST move_wrapper_test SOURCES MoveWrapperTest.cpp
       TEST mpmc_pipeline_test SOURCES MPMCPipelineTest.cpp
-      TEST mpmc_queue_test SLOW
+      TEST mpmc_queue_test
         SOURCES MPMCQueueTest.cpp
       TEST network_address_test HANGING
         SOURCES
