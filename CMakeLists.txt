@@ -18,8 +18,6 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
 SET(CMAKE_BUILD_TYPE "Debug")
 
-
-
 IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
   MESSAGE(STATUS "current platform: Linux ")
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
@@ -695,7 +693,7 @@ if (BUILD_TESTS OR BUILD_BENCHMARKS)
       TEST global_executor_test SOURCES GlobalExecutorTest.cpp
       TEST serial_executor_test SOURCES SerialExecutorTest.cpp
       # Fails in ThreadPoolExecutorTest.RequestContext:719 data2 != nullptr
-      TEST thread_pool_executor_test BROKEN WINDOWS_DISABLED
+      TEST thread_pool_executor_test
         SOURCES ThreadPoolExecutorTest.cpp
       TEST threaded_executor_test SOURCES ThreadedExecutorTest.cpp
       TEST timed_drivable_executor_test SOURCES TimedDrivableExecutorTest.cpp

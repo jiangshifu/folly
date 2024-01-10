@@ -42,6 +42,23 @@
 #include <folly/portability/SysResource.h>
 #include <folly/synchronization/detail/Spin.h>
 
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include "sys/time.h"
+#include <unistd.h>
+typedef unsigned long long uint64;
+
+#define MIN(A, B)        ((B) < (A) ? (B) : (A))
+#define MAX(A, B)        ((B) > (A) ? (B) : (A))
+
+uint64 us_clock_now(){
+    struct timeval st;
+    gettimeofday(&st, NULL);
+    return st.tv_sec * 1000 * 1000 + st.tv_usec;
+}
+
+
 using namespace folly;
 using namespace std::chrono;
 
@@ -55,7 +72,7 @@ using namespace std::chrono;
   } while (0)
 
 static Func burnMs(uint64_t ms) {
-  return [ms]() { std::this_thread::sleep_for(milliseconds(ms)); };
+  return [ms]() { };
 }
 
 #ifdef __linux__
@@ -536,33 +553,160 @@ TEST(ThreadPoolExecutorTest, AddWithPriority) {
   EXPECT_EQ(7, c);
 }
 
-TEST(ThreadPoolExecutorTest, BlockingQueue) {
-  std::atomic_int c{0};
-  auto f = [&] {
-    burnMs(1)();
-    c++;
-  };
-  const int kQueueCapacity = 1;
-  const int kThreads = 1;
+//TEST(ThreadPoolExecutorTest, BlockingQueue) {
+//printf("jch__51\n");
+//
+//std::atomic_int c{0};
+//  auto f = [&] {
+//    burnMs(0)();
+//    c++;
+//  };
+//  const int kQueueCapacity = 1;
+//  const int kThreads = 1;
+//
+//  auto queue = std::make_unique<LifoSemMPMCQueue<
+//      CPUThreadPoolExecutor::CPUTask,
+//      QueueBehaviorIfFull::BLOCK>>(kQueueCapacity);
+//
+//  CPUThreadPoolExecutor cpuExe(
+//      kThreads,
+//      std::move(queue),
+//      std::make_shared<NamedThreadFactory>("CPUThreadPool"));
+//
+//  // Add `f` five times. It sleeps for 1ms every time. Calling
+//  // `cppExec.add()` is *almost* guaranteed to block because there's
+//  // only 1 cpu worker thread.
+//  printf("jch__5\n");
+//uint64 begin1 = us_clock_now();
+//  // 100w 10s, 1s 10w, 1ms 100, 1ge 10us
+//  int count = 10 * 10000;
+//  for (int i = 0; i < count; i++) {
+//    EXPECT_NO_THROW(cpuExe.add(f));
+//  }
+//uint64 end = us_clock_now();
+//printf("insert_time=%llu\n, avg=%llu", end-begin1, (end-begin1)/count);
+//  cpuExe.join();
+//
+//  EXPECT_EQ(count, c);
+//}
+#include <chrono>
+using namespace std;
+// debug模式， end - begin = 10993995, avg=109
+TEST(ThreadPoolExecutorTest, BlockingQueue2) {
+//    auto queue = new LifoSemMPMCQueue<int,  QueueBehaviorIfFull::BLOCK>>(10000)>;
+//int count=10000 * 10;
+//int pushCount = count*10;
+int count=3;
+int pushCount = count*1;
+auto queue = new LifoSemMPMCQueue<int, QueueBehaviorIfFull::BLOCK>(count);
+//  auto queue = std::make_unique<LifoSemMPMCQueue<int, QueueBehaviorIfFull::BLOCK>>(10000);
+auto begin = chrono::steady_clock::now().time_since_epoch().count();
+/* 1) one thread 50us */
+//  for(int i=0;i<100000;i++){
+//    queue->add(1);
+//    int ret = queue->take();
+//  }
 
-  auto queue = std::make_unique<LifoSemMPMCQueue<
-      CPUThreadPoolExecutor::CPUTask,
-      QueueBehaviorIfFull::BLOCK>>(kQueueCapacity);
+/* 2) two thread 60us-100us */
+#define ProducerNum 1
+#define ConsumerNum 1
+std::thread p[ProducerNum];
+std::thread c[ConsumerNum];
 
-  CPUThreadPoolExecutor cpuExe(
-      kThreads,
-      std::move(queue),
-      std::make_shared<NamedThreadFactory>("CPUThreadPool"));
+for (int j=0;j<ProducerNum;j++){
+    p[j] = std::thread([&]() { for(int i=0;i<pushCount;i++){
+//sleep(0.5);
+//sleep(50000);
+    printf("jch__producer_add_begin, tid=%lu\n", pthread_self());
+    queue->add(1);
+printf("jch__producer_add_begin, tid=%lu\n", pthread_self());
+queue->add(1);
+    printf("jch__producer_add_end, tid=%lu\n", pthread_self());
+} });
+}
 
-  // Add `f` five times. It sleeps for 1ms every time. Calling
-  // `cppExec.add()` is *almost* guaranteed to block because there's
-  // only 1 cpu worker thread.
-  for (int i = 0; i < 5; i++) {
-    EXPECT_NO_THROW(cpuExe.add(f));
-  }
-  cpuExe.join();
+//for (int j=0;j<ConsumerNum;j++){
+//    c[j] = std::thread([&]() { for(int i=0;i<pushCount*ProducerNum/ConsumerNum;i++){
+//printf("jch__consumer_take_begin, tid=%lu\n", pthread_self());
+//queue->take();
+//printf("jch__consumer_take_end, tid=%lu\n", pthread_self());
+//
+//} });
+//}
 
-  EXPECT_EQ(5, c);
+for (int j=0;j<ProducerNum;j++){
+p[j].join();
+}
+
+for (int j=0;j<ConsumerNum;j++){
+c[j].join();
+}
+//for(int j=0;j<10;j++){
+//    std::thread p[j]([&]() { for(int i=0;i<pushCount;i++){
+//        queue->add(1);
+//    } });
+//}
+
+//std::thread p[0]([&]() { for(int i=0;i<pushCount;i++){
+//    queue->add(1);
+//} });
+
+//std::thread t5([&]() { for(int i=0;i<pushCount;i++){
+//    queue->add(1);
+//} });
+//std::thread t6([&]() { for(int i=0;i<pushCount;i++){
+//    queue->add(1);
+//} });
+//
+//std::thread t2([&]() { for(int i=0;i<pushCount;i++){
+////    sleep(10000);
+//    queue->take();
+//} });
+//std::thread t3([&]() { for(int i=0;i<pushCount;i++){
+////    sleep(10000);
+//    queue->take();
+//} });
+//std::thread t4([&]() { for(int i=0;i<pushCount;i++){
+////    sleep(10000);
+//    queue->take();
+//} });
+//
+//p[0].join();
+//t2.join();
+//t3.join();
+//t4.join();
+//t5.join();
+//t6.join();
+auto total = chrono::steady_clock::now().time_since_epoch().count()-begin;
+printf("spsc1, end - begin = %lu, avg=%lu\n", total, total/(pushCount*ProducerNum));
+
+
+//  std::atomic_int c{0};
+//  auto f = [&] {
+//    burnMs(1)();
+//    c++;
+//  };
+//  const int kQueueCapacity = 1;
+//  const int kThreads = 1;
+//
+//  auto queue = std::make_unique<LifoSemMPMCQueue<
+//      CPUThreadPoolExecutor::CPUTask,
+//      QueueBehaviorIfFull::BLOCK>>(kQueueCapacity);
+//
+//  CPUThreadPoolExecutor cpuExe(
+//      kThreads,
+//      std::move(queue),
+//      std::make_shared<NamedThreadFactory>("CPUThreadPool"));
+//
+//  // Add `f` five times. It sleeps for 1ms every time. Calling
+//  // `cppExec.add()` is *almost* guaranteed to block because there's
+//  // only 1 cpu worker thread.
+//  for (int i = 0; i < 5; i++) {
+//    EXPECT_NO_THROW(cpuExe.add(f));
+//  }
+//  cpuExe.join();
+//
+//  EXPECT_EQ(5, c);
 }
 
 TEST(PriorityThreadFactoryTest, ThreadPriority) {

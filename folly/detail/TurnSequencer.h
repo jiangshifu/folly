@@ -120,9 +120,8 @@ struct TurnSequencer {
       const bool updateSpinCutoff,
       const std::chrono::time_point<Clock, Duration>* absTime =
           nullptr) noexcept {
-    uint32_t prevThresh = spinCutoff.load(std::memory_order_relaxed);
-    const uint32_t effectiveSpinCutoff =
-        updateSpinCutoff || prevThresh == 0 ? kMaxSpinLimit : prevThresh;
+     spinCutoff.store(0);
+     (void)updateSpinCutoff;
 
     uint64_t begin = 0;
     uint32_t tries;
@@ -131,31 +130,13 @@ struct TurnSequencer {
       uint32_t state = state_.load(std::memory_order_acquire);
       uint32_t current_sturn = decodeCurrentSturn(state);
       if (current_sturn == sturn) {
-        break;
+          return TryWaitResult::SUCCESS;
       }
 
       // wrap-safe version of (current_sturn >= sturn)
       if (sturn - current_sturn >= std::numeric_limits<uint32_t>::max() / 2) {
         // turn is in the past
         return TryWaitResult::PAST;
-      }
-
-      // the first effectSpinCutoff tries are spins, after that we will
-      // record ourself as a waiter and block with futexWait
-      if (kSpinUsingHardwareClock) {
-        auto now = hardware_timestamp();
-        if (tries == 0) {
-          begin = now;
-        }
-        if (tries == 0 || now < begin + effectiveSpinCutoff) {
-          asm_volatile_pause();
-          continue;
-        }
-      } else {
-        if (tries < effectiveSpinCutoff) {
-          asm_volatile_pause();
-          continue;
-        }
       }
 
       uint32_t current_max_waiter_delta = decodeMaxWaitersDelta(state);
@@ -172,45 +153,12 @@ struct TurnSequencer {
           continue;
         }
       }
-      if (absTime) {
-        auto futexResult = detail::futexWaitUntil(
-            &state_, new_state, *absTime, futexChannel(turn));
-        if (futexResult == FutexResult::TIMEDOUT) {
-          return TryWaitResult::TIMEDOUT;
-        }
-      } else {
+//        printf("jch__consumer_writeState\n");
+//        sleep(2);
+//        printf("jch__consumer_futextWait, &state_=%p, new_state=%u, futexChannel(turn)=%u\n", &state_, new_state, futexChannel(turn));
+
         detail::futexWait(&state_, new_state, futexChannel(turn));
-      }
-    }
-
-    if (updateSpinCutoff || prevThresh == 0) {
-      // if we hit kMaxSpinLimit then spinning was pointless, so the right
-      // spinCutoff is kMinSpinLimit
-      uint32_t target;
-      uint64_t elapsed = !kSpinUsingHardwareClock || tries == 0
-          ? tries
-          : hardware_timestamp() - begin;
-      if (tries >= kMaxSpinLimit) {
-        target = kMinSpinLimit;
-      } else {
-        // to account for variations, we allow ourself to spin 2*N when
-        // we think that N is actually required in order to succeed
-        target = std::min(
-            uint32_t{kMaxSpinLimit},
-            std::max(
-                uint32_t{kMinSpinLimit}, static_cast<uint32_t>(elapsed) * 2));
-      }
-
-      if (prevThresh == 0) {
-        // bootstrap
-        spinCutoff.store(target);
-      } else {
-        // try once, keep moving if CAS fails.  Exponential moving average
-        // with alpha of 7/8
-        // Be careful that the quantity we add to prevThresh is signed.
-        spinCutoff.compare_exchange_weak(
-            prevThresh, prevThresh + int(target - prevThresh) / 8);
-      }
+//        printf("jch__consumer_waitEnd\n");
     }
 
     return TryWaitResult::SUCCESS;
@@ -225,8 +173,13 @@ struct TurnSequencer {
       uint32_t new_state = encode(
           (turn + 1) << kTurnShift,
           max_waiter_delta == 0 ? 0 : max_waiter_delta - 1);
+//      sleep(1);
+//        printf("jch__producer_loadState\n");
       if (state_.compare_exchange_strong(state, new_state)) {
+//          sleep(1);
         if (max_waiter_delta != 0) {
+//          printf("jch__producer_completeTurn, &state=%p, std::numeric_limits<int>::max()=%d, futexChannel(turn + 1)=%u\n", &state_, std::numeric_limits<int>::max(), futexChannel(turn + 1));
+//          printf("jch__producer_futextWake, state=%u, new_state=%u\n", state, new_state);
           detail::futexWake(
               &state_, std::numeric_limits<int>::max(), futexChannel(turn + 1));
         }

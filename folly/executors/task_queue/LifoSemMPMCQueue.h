@@ -35,6 +35,12 @@ class LifoSemMPMCQueue : public BlockingQueue<T> {
       : sem_(semaphoreOptions), queue_(max_capacity) {}
 
   BlockingQueueAddResult add(T item) override {
+    thread_local  uint64_t totalWrite=0;
+      thread_local uint64_t totalPost=0;
+      thread_local uint64_t count=0;
+      thread_local uint64_t COMPUTE_CNT=100000;
+    count++;
+    auto begin = std::chrono::steady_clock::now().time_since_epoch().count();
     switch (kBehavior) { // static
       case QueueBehaviorIfFull::THROW:
         if (!queue_.writeIfNotFull(std::move(item))) {
@@ -45,13 +51,28 @@ class LifoSemMPMCQueue : public BlockingQueue<T> {
         queue_.blockingWrite(std::move(item));
         break;
     }
-    return sem_.post();
+    auto afterWrite = std::chrono::steady_clock::now().time_since_epoch().count();
+    BlockingQueueAddResult ret = sem_.post();
+    auto afterPost = std::chrono::steady_clock::now().time_since_epoch().count();
+      totalWrite+= afterWrite-begin;
+      totalPost=afterPost-afterWrite;
+    if(count%COMPUTE_CNT==0){
+        printf("writeAvg=%lu, postAvg=%lu\n", totalWrite/COMPUTE_CNT, totalPost/COMPUTE_CNT);
+        count=0;
+        totalWrite=0;
+        totalPost=0;
+    }
+    return ret;
   }
 
   T take() override {
     T item;
     while (!queue_.readIfNotEmpty(item)) {
+      printf("jch__consumer_begin_sleep\n");
+      sleep(5);
+      printf("jch__consumer_begin_wait\n");
       sem_.wait();
+      printf("jch__consumer_after_wait\n");
     }
     return item;
   }

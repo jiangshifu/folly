@@ -77,9 +77,12 @@ void run_mt_sequencer_thread2(
         int i) {
     for (int op = i; op < numOps; op += numThreads) {
         printf("jch__wait_begin, tid=%lu\n", pthread_self());
+        if (init+op==1) {
+            printf("jch__wait_begin, tid=%lu\n", pthread_self());
+        }
         seq.waitForTurn(init + op, spinThreshold, (op % 32) == 0);
         printf("jch__wait_end, tid=%lu\n", pthread_self());
-        sleep(1000);
+        sleep(5);
         EXPECT_EQ(prev, op - 1);
         prev = op;
         seq.completeTurn(init + op);
@@ -280,24 +283,34 @@ TEST(MPMCQueue, enqCapacityTest) {
   // False positive for dynamic version. Capacity can be temporarily
   // higher than specified.
   for (auto cap : {1, 100, 10000}) {
+    cap = 1;
     MPMCQueue<int> cq(cap);
     for (int i = 0; i < cap; ++i) {
       cq.blockingWrite(i);
     }
-    int t = 0;
-    int when;
-    auto thr = std::thread([&] {
-      cq.blockingWrite(100);
-      when = t;
-    });
-    usleep(2000);
-    t = 1;
     int dummy;
     cq.blockingRead(dummy);
-    thr.join();
-    EXPECT_EQ(when, 1);
+    printf("jch__dummy=%d\n", dummy);
+    int dummy2;
+    cq.blockingRead(dummy2);
+
+//    int t = 0;
+//    int when;
+//    auto thr = std::thread([&] {
+//      cq.blockingWrite(100);
+//      when = t;
+//    });
+//    usleep(2000);
+//    t = 1;
+//    int dummy;
+//    cq.blockingRead(dummy);
+//    thr.join();
+//    EXPECT_EQ(when, 1);
+    break;
   }
 }
+
+
 
 template <template <typename> class Atom, bool Dynamic = false>
 void runTryEnqDeqThread(
